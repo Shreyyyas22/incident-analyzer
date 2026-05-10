@@ -17,6 +17,10 @@ dist/
 dist-ssr/
 *.local
 
+# Celery
+backend/celerybeat-schedule
+celerybeat-schedule
+
 # Docker / DB
 postgres_data/
 
