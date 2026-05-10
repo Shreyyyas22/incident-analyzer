@@ -1,0 +1,613 @@
+🔍
+AI INCIDENT ANALYZER
+Production-Grade Observability Platform
+──────────────────────────────────────
+FastAPI  ·  PostgreSQL  ·  Redis  ·  Celery  ·  WebSockets  ·  AI
+Next.js  ·  TailwindCSS  ·  Docker  ·  Gemini/Groq API
+9 Phases  ·  Full-Stack  ·  Beginner-Friendly Step-by-Step Guide
+What Is This Project?
+Imagine you are running a tech startup. You have multiple services — your main API, a database, a caching layer, a background job processor. One day, users start complaining that the app is slow. You have no idea why. You check logs manually, but there are thousands of lines. You don't know which service failed first or what caused the chain reaction.
+AI Incident Analyzer solves exactly this problem. It is an intelligent observability platform that:
+Collects logs and metrics from all your services in real time
+Displays them live on a dashboard (like Datadog or Grafana)
+Automatically detects when something goes wrong (anomaly detection)
+Creates an "incident" — a record of the failure event
+Uses AI (Gemini/Groq) to analyze the failure and explain: what happened, why it happened, and how to fix it
+Real-world analogy: Think of it as a 24/7 DevOps engineer who watches all your services, never sleeps, and instantly tells you "Redis latency spiked → caused API timeouts → triggered worker retry storms" the moment something breaks.
+Who Should Build This?
+This project is designed for backend engineers who already know Python basics and want to:
+Build a real, portfolio-worthy full-stack project
+Learn production-grade architecture patterns
+Understand AI integration in real systems
+Get hands-on with Docker, WebSockets, async programming, and distributed systems
+💡 What You Will Learn
+✅  How to structure a production FastAPI application
+✅  Async programming with SQLAlchemy and PostgreSQL
+✅  Real-time streaming with WebSockets and Redis Pub/Sub
+✅  Background task processing with Celery
+✅  AI prompt engineering with Gemini/Groq APIs
+✅  Anomaly detection and incident management logic
+✅  Docker + Docker Compose for local and production environments
+✅  Deploying to Render, Vercel, Neon, and Upstash (all free tier)
+✅  CI/CD with GitHub Actions
+Architecture Overview
+How the System Works — The Big Picture
+Before writing any code, you need to understand how all the pieces connect. Here is the complete data flow:
+📡 Data Flow: From Service Failure to AI Explanation
+STEP 1 ──  Your app (e.g., payment-service) sends logs to our FastAPI ingest endpoint
+STEP 2 ──  FastAPI validates, stores in PostgreSQL, and publishes to Redis channel
+STEP 3 ──  WebSocket server reads from Redis and streams logs to the browser dashboard
+STEP 4 ──  Anomaly detector (Celery worker) checks: are errors exceeding threshold?
+STEP 5 ──  If yes → creates an Incident record in PostgreSQL
+STEP 6 ──  Celery task sends incident details to Gemini/Groq API
+STEP 7 ──  AI returns root cause analysis and suggested fix
+STEP 8 ──  Analysis is stored and broadcast to dashboard in real time
+Technology Choices — Why Each Tool
+Every technology in this project was chosen for a reason. Here is a plain-English explanation:
+Technology
+Why We Use It
+FastAPI
+Modern Python web framework. Async-first, auto-generates API docs, extremely fast. Better than Flask for this use case because it natively supports WebSockets and async DB queries.
+PostgreSQL
+Relational database. We need ACID transactions for incident records. Structured data with relationships (service → logs → incidents). Much better than MongoDB here.
+SQLAlchemy (async)
+Python ORM to interact with PostgreSQL. We use the async version so database queries don't block the event loop — critical for a real-time system.
+Alembic
+Database migration tool. When you change your database schema (add a column, etc.), Alembic tracks and applies changes without losing data.
+Redis
+In-memory data store. Used for two things: (1) Pub/Sub messaging so WebSocket workers receive new log events, (2) Caching and rate limiting.
+Celery
+Distributed task queue. When we need to run heavy work (AI analysis, anomaly detection) without blocking the API, Celery handles it in the background.
+WebSockets
+Persistent two-way connection. Unlike HTTP (request → response), WebSockets allow the server to push data to the browser the instant something happens.
+Next.js
+React framework for the frontend dashboard. File-based routing, built-in optimizations, easy deployment on Vercel.
+TailwindCSS
+Utility-first CSS. Build modern UIs rapidly without writing custom CSS files.
+Zustand
+Lightweight state management for React. Simpler than Redux, perfect for managing live log streams and incident state.
+Docker
+Containerization. Your app runs identically on your laptop and in production. No 'works on my machine' problems.
+Gemini/Groq API
+AI language models. Groq is extremely fast (inference speed). Gemini has a generous free tier. We use them to generate incident explanations.
+Complete Project Folder Structure
+Understanding the folder structure before writing code saves hours of confusion later. Here is the full structure with explanations:
+Backend Structure
+📁 Backend Folder Structure
+ai-incident-analyzer/
+├── backend/
+│   ├── app/
+│   │   ├── __init__.py
+│   │   ├── main.py                ← FastAPI app entry point
+│   │   ├── config.py              ← All environment variables / settings
+│   │   ├── database.py            ← Async SQLAlchemy engine setup
+│   │   │
+│   │   ├── models/                ← SQLAlchemy ORM models (DB tables)
+│   │   │   ├── __init__.py
+│   │   │   ├── service.py         ← Service model
+│   │   │   ├── log.py             ← Log model
+│   │   │   └── incident.py        ← Incident model
+│   │   │
+│   │   ├── schemas/               ← Pydantic models (request/response shapes)
+│   │   │   ├── __init__.py
+│   │   │   ├── service.py
+│   │   │   ├── log.py
+│   │   │   └── incident.py
+│   │   │
+│   │   ├── repositories/          ← DB query functions (data access layer)
+│   │   │   ├── __init__.py
+│   │   │   ├── service_repo.py
+│   │   │   ├── log_repo.py
+│   │   │   └── incident_repo.py
+│   │   │
+│   │   ├── services/              ← Business logic (not DB, not HTTP)
+│   │   │   ├── __init__.py
+│   │   │   ├── log_service.py
+│   │   │   ├── anomaly_service.py
+│   │   │   └── ai_service.py
+│   │   │
+│   │   ├── routes/                ← FastAPI route handlers (HTTP endpoints)
+│   │   │   ├── __init__.py
+│   │   │   ├── health.py
+│   │   │   ├── services.py
+│   │   │   ├── logs.py
+│   │   │   └── incidents.py
+│   │   │
+│   │   ├── websockets/            ← WebSocket connection and broadcasting
+│   │   │   ├── __init__.py
+│   │   │   ├── manager.py
+│   │   │   └── handlers.py
+│   │   │
+│   │   └── workers/               ← Celery tasks
+│   │       ├── __init__.py
+│   │       ├── celery_app.py
+│   │       ├── anomaly_worker.py
+│   │       └── ai_worker.py
+│   │
+│   ├── alembic/                   ← Database migrations
+│   ├── alembic.ini
+│   ├── Dockerfile
+│   └── requirements.txt
+Why This Separation Matters
+This architecture follows the "Clean Architecture" or "Layered Architecture" principle. Here is the rule:
+🏗️ Architectural Layers — Who Calls Who
+routes/ (HTTP layer)   →   calls   →   services/ (business logic)
+services/ (logic)      →   calls   →   repositories/ (data access)
+repositories/          →   calls   →   models/ (database tables)
+⚠️  NEVER skip layers. Routes should NOT directly query the database.
+⚠️  Services should NOT know about HTTP requests or responses.
+⚠️  Repositories should ONLY contain database queries, nothing else.
+WHY? → Each layer can be tested, swapped, or scaled independently.
+PHASE 1
+Project Setup & Foundation
+FastAPI · PostgreSQL · Redis · Docker · Environment Config
+What Are We Building in Phase 1?
+Phase 1 is the foundation. Nothing exciting happens yet — we are just laying the groundwork so everything else can be built on top. Think of it like building the floor, walls, and plumbing of a house before decorating it.
+By the end of Phase 1, you will have:
+A running FastAPI application
+PostgreSQL database connected with async SQLAlchemy
+Redis connected for caching and pub/sub
+Docker Compose running all services locally with one command
+A /health endpoint that confirms everything is alive
+Proper environment variable management with Pydantic Settings
+Step-by-Step Breakdown
+Step 1.1 — Project Initialization
+Create your project directory and set up a Python virtual environment. Install these packages:
+📦 requirements.txt — Core Dependencies
+fastapi==0.104.1
+uvicorn[standard]==0.24.0      ← ASGI server (runs FastAPI)
+sqlalchemy[asyncio]==2.0.23    ← Async ORM
+asyncpg==0.29.0               ← Async PostgreSQL driver
+alembic==1.12.1               ← Database migrations
+redis[asyncio]==5.0.1         ← Async Redis client
+pydantic-settings==2.1.0      ← Environment variable management
+celery[redis]==5.3.4          ← Background task queue
+python-dotenv==1.0.0          ← Load .env files
+structlog==23.2.0             ← Structured logging (JSON format)
+Step 1.2 — Configuration Management
+Never hardcode values like database URLs or API keys. Use a config.py file with Pydantic Settings. This reads from environment variables automatically.
+config.py concept: Create a Settings class that reads DATABASE_URL, REDIS_URL, AI_API_KEY etc. from environment variables. If a variable is missing, the app fails at startup with a clear error — better than failing mid-request.
+Step 1.3 — Database Setup
+Set up async SQLAlchemy with connection pooling. This is NOT the same as regular SQLAlchemy:
+Regular SQLAlchemy: blocks the thread while waiting for DB responses
+Async SQLAlchemy: uses Python's asyncio — thousands of concurrent queries possible
+Key concept — Connection Pooling: Instead of opening a new database connection for every request (slow!), we maintain a pool of 10-20 open connections and reuse them. pool_size=20 in your engine config.
+Step 1.4 — Docker Compose Setup
+Docker Compose lets you define all services (FastAPI, PostgreSQL, Redis) in one YAML file and start everything with docker-compose up.
+🐳 docker-compose.yml — Services Overview
+services:
+  postgres:   Official postgres:15 image, port 5432, persistent volume
+  redis:      Official redis:7-alpine image, port 6379
+  backend:    Built from our Dockerfile, depends_on postgres + redis
+  worker:     Same image as backend, runs celery worker command
+Networks: All services share a private Docker network (app-network)
+Volumes:  postgres_data persists DB even when containers restart
+Step 1.5 — Health Endpoint
+Build GET /health that checks: Is PostgreSQL reachable? Is Redis reachable? Return status for each. This is used by load balancers and monitoring tools to know if the app is alive.
+✅ Phase 1 Completion Checklist
+□  fastapi app starts without errors
+□  docker-compose up starts all 4 services
+□  GET /health returns { status: ok, postgres: ok, redis: ok }
+□  .env file contains all required variables
+□  No secrets hardcoded anywhere in the codebase
+□  Structured JSON logging works
+PHASE 2
+Log Ingestion System
+Service Registration · API Key Auth · Rate Limiting · Async Log Storage
+What Are We Building in Phase 2?
+Now we build the core ingestion pipeline. This is how your monitored services talk to our platform. We need APIs that are fast, validated, authenticated, and protected from abuse.
+By the end of Phase 2, you will have:
+Service registration endpoint — register your app with the platform
+API key generation and authentication for each service
+Log ingestion endpoint — POST /logs with full Pydantic validation
+Heartbeat endpoint — services report they are alive
+Rate limiting — prevent a single noisy service from flooding the system
+Async DB writes — logs stored in PostgreSQL without blocking
+Step-by-Step Breakdown
+Step 2.1 — Service Registration
+Before a service can send logs, it must register. Registration creates a service record with a unique API key. Think of it like creating an account.
+POST /services/register accepts: { name, description, environment (prod/staging/dev) }
+Returns: { service_id, api_key } — the service stores this API key and uses it for all future requests
+Step 2.2 — API Key Authentication
+Every log ingestion request must include the API key in the X-API-Key header. We verify it against the database and attach the service info to the request.
+🔑 Authentication Flow
+1. Service sends: POST /logs with header X-API-Key: sk_prod_abc123
+2. FastAPI dependency: get_current_service(api_key)
+3. We query PostgreSQL: SELECT * FROM services WHERE api_key = ?
+4. If not found → 401 Unauthorized
+5. If found but inactive → 403 Forbidden
+6. If valid → inject service object into route handler
+FastAPI Dependencies are perfect for this — reusable auth across all protected routes
+Step 2.3 — Log Schema Design
+Each log entry must be strictly validated. Here is what a log looks like:
+📋 Log Payload Schema
+{
+  service_name: str           ← Which service is sending this
+  log_level: enum             ← DEBUG / INFO / WARNING / ERROR / CRITICAL
+  message: str                ← The log message (max 10,000 chars)
+  timestamp: datetime         ← When it happened (ISO 8601 format)
+  metadata: dict (optional)   ← Extra context: { request_id, user_id, latency_ms }
+  trace_id: str (optional)    ← For distributed tracing correlation
+}
+Step 2.4 — Rate Limiting
+Use Redis to implement a sliding window rate limiter. Each service is allowed 1000 log requests per minute. If exceeded, return 429 Too Many Requests.
+How it works: Redis ZADD + ZCOUNT with timestamps. For each request, add current timestamp to a sorted set. Count entries in the last 60 seconds. If count > 1000, reject.
+Step 2.5 — Heartbeat Tracking
+Each service should send a POST /services/{id}/heartbeat every 30 seconds. This updates last_seen_at in the database. A background job (Phase 4) will detect services that stop sending heartbeats and mark them as down.
+✅ Phase 2 Completion Checklist
+□  POST /services/register creates a service + returns api_key
+□  POST /logs rejects requests without valid X-API-Key
+□  Log validation rejects invalid log_level values
+□  Rate limiter returns 429 after 1000 requests/minute
+□  POST /services/{id}/heartbeat updates last_seen_at
+□  GET /services returns all registered services with health status
+PHASE 3
+Real-Time Streaming
+WebSockets · Redis Pub/Sub · Live Dashboard Feed
+What Are We Building in Phase 3?
+This is where the system comes alive. We want the dashboard to show new logs the instant they arrive — not after a page refresh. We achieve this with WebSockets and Redis Pub/Sub.
+By the end of Phase 3, you will have:
+WebSocket endpoint that browser clients connect to
+Redis Pub/Sub: log ingest publishes events, WebSocket server subscribes
+Connection manager that handles multiple simultaneous dashboard users
+Real-time log streaming to the browser without polling
+Key Concepts Explained
+Why WebSockets Instead of HTTP Polling?
+⚡ WebSockets vs Polling
+HTTP Polling:   Browser asks 'any new logs?' every 2 seconds → wasteful, 500ms delay minimum
+WebSockets:     Server pushes 'new log!' the instant it arrives → 0ms delay, efficient
+WebSocket lifecycle:
+  Client → server: 'I want to subscribe to logs for service payment-api'
+  Connection stays OPEN (unlike HTTP which closes after each request)
+  Server → client: pushes log events as they arrive
+  Either side can close the connection at any time
+Redis Pub/Sub Architecture
+Here is the challenge: we might run 3 FastAPI instances for load balancing. If a log arrives at instance #1, how do instances #2 and #3 know to send it to their WebSocket clients?
+Answer: Redis Pub/Sub. When any FastAPI instance receives a log, it publishes to a Redis channel. All instances subscribe to that channel. All of them receive the message and can push to their clients.
+📡 Redis Pub/Sub Flow
+PUBLISHER (log ingestion endpoint):
+  redis.publish('logs:payment-api', json.dumps(log_data))
+SUBSCRIBER (WebSocket worker):
+  async for message in redis.subscribe('logs:payment-api'):
+      await websocket.send_json(message)
+Result: All connected dashboard clients receive the log in <50ms
+Channels used:
+  logs:{service_name}   ← logs from a specific service
+  logs:all              ← all logs across all services
+  incidents:new         ← new incident alerts
+Connection Manager
+We need a class that tracks all active WebSocket connections. When a new log arrives via Redis, we broadcast to all relevant connections. When a client disconnects (closes browser), we remove them from the list.
+✅ Phase 3 Completion Checklist
+□  ws://localhost:8000/ws/logs connects successfully
+□  Sending a log via POST /logs appears instantly on WebSocket client
+□  Multiple browser tabs all receive the same real-time updates
+□  Disconnected clients are removed from connection manager (no memory leak)
+□  Redis Pub/Sub tested with 2+ FastAPI workers running simultaneously
+PHASE 4
+Incident Detection
+Anomaly Detection · Threshold Alerting · Celery Workers · Sliding Windows
+What Are We Building in Phase 4?
+We now need the system to be smart enough to know when something is wrong — without a human watching the screen. This involves automatic anomaly detection and incident creation.
+By the end of Phase 4, you will have:
+Anomaly detection logic using sliding window error counts
+Configurable thresholds per service (e.g., >10 errors in 60 seconds = incident)
+Celery worker that runs detection every 30 seconds
+Automatic incident creation when thresholds are crossed
+Heartbeat monitor — detect services that stopped sending heartbeats
+Incident de-duplication — don't create 100 incidents for the same failure
+Key Concepts Explained
+Sliding Window Algorithm
+A sliding window counts events within a rolling time frame. Unlike a fixed window (counting resets every minute), a sliding window gives a more accurate view of recent activity.
+📊 Sliding Window Example
+Threshold: 10 errors in 60 seconds
+FIXED WINDOW (bad):   
+  12:00:55 → 9 errors (no alert)
+  12:01:00 → window resets → 0 errors (missed the 15 errors spanning the boundary!)
+SLIDING WINDOW (good):
+  12:01:00 → count errors from 12:00:00 to 12:01:00 = 15 errors → ALERT
+Implementation: Use PostgreSQL query with WHERE timestamp > NOW() - INTERVAL '60 seconds'
+Or use Redis sorted sets (ZADD timestamp, ZCOUNT from..to) for faster counting
+Incident States
+🚦 Incident Lifecycle
+OPEN      ← Just detected, AI analysis pending
+ANALYZING ← AI is currently generating root cause analysis
+RESOLVED  ← Error rate dropped back below threshold
+IGNORED   ← Manually dismissed by engineer
+State transitions are logged with timestamps for audit trail
+Celery Worker Design
+We use Celery Beat (a scheduler) to run the anomaly_detection task every 30 seconds. When an incident is detected:
+Create incident record in PostgreSQL (status: OPEN)
+Publish incident event to Redis → broadcast to WebSocket clients
+Queue a separate Celery task: run_ai_analysis(incident_id)
+Why Celery instead of running detection in the API? The API must respond quickly (<100ms). Anomaly detection scans thousands of log records. This would make the API slow. Celery runs it in a separate process entirely.
+✅ Phase 4 Completion Checklist
+□  Sending 10+ ERROR logs in 60 seconds creates an incident automatically
+□  Incident appears on WebSocket stream immediately after creation
+□  Celery worker logs show detection running every 30 seconds
+□  Service with no heartbeat for 5 minutes is marked as DOWN
+□  Duplicate incidents not created if one is already OPEN for same service
+□  GET /incidents returns all incidents with pagination
+PHASE 5
+AI Incident Analysis
+Gemini/Groq API · Prompt Engineering · Root Cause Analysis · Async AI Tasks
+What Are We Building in Phase 5?
+This is the most impressive feature. When an incident is detected, we send the relevant log context to an AI model and ask it to explain what went wrong, why, and how to fix it.
+By the end of Phase 5, you will have:
+AI service that sends incident context to Gemini or Groq
+Structured prompt engineering for infrastructure-focused analysis
+Root cause identification with confidence scores
+Suggested remediation steps
+Severity classification (P1/P2/P3)
+Async AI calls — the API stays fast while AI runs in background
+AI Integration Design
+Which AI API — Gemini or Groq?
+Feature
+Gemini 1.5 Flash vs Groq (Llama 3)
+Speed
+Groq wins — 500+ tokens/sec inference (fastest available)
+Free tier
+Gemini wins — more generous daily quota
+Quality
+Both excellent for structured analysis tasks
+Recommendation
+Use Groq for development (speed), Gemini for production (quota)
+Implementation
+Abstract behind an AIProvider interface — swap easily
+Prompt Engineering Strategy
+The quality of AI output depends entirely on prompt quality. We use a structured prompt that gives the AI exactly the right context:
+🤖 Prompt Template Structure
+System prompt:
+  'You are a senior SRE (Site Reliability Engineer) analyzing production incidents.'
+  'Respond ONLY in JSON format. Be concise and infrastructure-focused.'
+User prompt includes:
+  - Service name and environment
+  - Incident start time and duration
+  - Error count and error rate
+  - Last 20 error log messages (most recent first)
+  - Any WARNING logs from 5 minutes before incident
+  - Infrastructure metadata (from log metadata fields)
+Expected JSON response:
+  { summary, root_cause, severity (P1/P2/P3),
+    contributing_factors: [], suggested_fixes: [],
+    confidence_score (0.0-1.0) }
+Async AI Processing Flow
+AI API calls can take 2-10 seconds. We never make the user wait for this. The flow is:
+Incident created (instant) → status: OPEN
+Celery task queued: analyze_incident(incident_id)
+Dashboard shows 'AI Analysis Pending...'
+Celery worker calls AI API (2-10 seconds)
+Analysis stored in database → status: ANALYZED
+WebSocket broadcasts: 'incident updated' event
+Dashboard updates automatically — shows full analysis
+✅ Phase 5 Completion Checklist
+□  New incident triggers AI analysis automatically within 30 seconds
+□  AI response includes: summary, root_cause, severity, suggested_fixes
+□  Invalid/empty AI responses handled gracefully (retry logic)
+□  AI provider can be swapped from Groq to Gemini via environment variable
+□  Rate limit handling — if AI API quota exceeded, retry after delay
+□  GET /incidents/{id}/analysis returns the full AI analysis
+PHASE 6
+Next.js Dashboard
+Live Logs · Incidents Table · Service Health Cards · WebSocket Client
+What Are We Building in Phase 6?
+The frontend dashboard — the visual face of the platform. This should feel like a professional observability tool. Think Datadog, but we built it ourselves.
+By the end of Phase 6, you will have:
+Next.js app with TailwindCSS styling
+Service health grid — cards showing status of each monitored service
+Live log stream panel — scrolling real-time logs from WebSocket
+Incidents table — all incidents with AI analysis expandable
+Metrics charts — error rate over time using Recharts
+Zustand stores for log buffer and incident state management
+Dashboard Pages
+Page / Component
+Description
+/dashboard
+Main overview: service health cards + recent incidents + error rate chart
+/logs
+Full-screen live log stream. Filter by service, log level. Pause/resume stream.
+/incidents
+Table of all incidents. Click to expand AI analysis, root cause, suggested fixes.
+/services
+Registered services list. Last heartbeat time, log volume stats.
+LogStreamPanel
+WebSocket client component. Connects to ws://api/ws/logs. Buffers last 500 logs.
+IncidentCard
+Shows incident with severity badge, AI summary, collapsible full analysis.
+ServiceHealthCard
+Green/yellow/red status indicator. Last seen, error rate last 5 min.
+WebSocket Client in Next.js
+In React, WebSocket connections must be managed carefully to avoid memory leaks. Use useEffect with cleanup:
+⚛️ WebSocket Pattern in React/Next.js
+useEffect(() => {
+  const ws = new WebSocket('ws://localhost:8000/ws/logs')
+  ws.onmessage = (event) => {
+    const log = JSON.parse(event.data)
+    useLogStore.getState().addLog(log)  ← Zustand store
+  }
+  return () => ws.close()  ← CRITICAL: cleanup on unmount
+}, [])
+Zustand store keeps last 500 logs in memory.
+React virtualizes the list so 500 items don't slow the browser.
+✅ Phase 6 Completion Checklist
+□  Dashboard loads without errors at localhost:3000
+□  Service health cards update when heartbeat stops
+□  Log panel shows real-time entries as POST /logs is called
+□  Incidents table updates automatically when new incident is created
+□  AI analysis visible by expanding an incident row
+□  Works on mobile viewport (responsive layout)
+PHASE 7
+Full Dockerization
+Multi-Service Compose · Production Dockerfile · Networking · Volumes
+What Are We Building in Phase 7?
+We clean up all Docker configurations for production. The goal: anyone should be able to clone the repo and run docker-compose up —- and have the entire platform running locally in under 2 minutes.
+By the end of Phase 7, you will have:
+Optimized multi-stage Dockerfile for the backend (smaller image size)
+docker-compose.yml running all 4 services: backend, postgres, redis, celery-worker
+docker-compose.override.yml for local dev with hot-reload
+docker-compose.prod.yml for production settings
+Health checks on all containers
+Named volumes for data persistence
+Production Dockerfile Best Practices
+🐳 Multi-Stage Dockerfile Explained
+# Stage 1: Builder — install dependencies
+FROM python:3.11-slim AS builder
+COPY requirements.txt .
+RUN pip install --user -r requirements.txt
+# Stage 2: Runner — copy only what's needed
+FROM python:3.11-slim AS runner
+COPY --from=builder /root/.local /root/.local
+COPY ./app ./app
+CMD ['uvicorn', 'app.main:app', '--host', '0.0.0.0', '--port', '8000']
+WHY multi-stage?  Build tools (gcc, pip cache) stay in Stage 1.
+Final image only has runtime code — smaller, faster, more secure.
+Typical result: 1.2GB → 180MB image size
+Container Networking
+In Docker Compose, all services share a private network. They communicate using service names as hostnames:
+Backend connects to PostgreSQL via: postgresql://postgres:5432/incidents
+Backend connects to Redis via: redis://redis:6379
+These hostnames ONLY work inside the Docker network
+From your laptop browser, you use localhost:8000 (mapped by ports:)
+✅ Phase 7 Completion Checklist
+□  docker-compose up --build starts all 4 services successfully
+□  docker-compose down && docker-compose up retains database data (volume)
+□  Backend image size under 300MB
+□  All containers have health checks defined
+□  No secrets in Dockerfile or docker-compose.yml (use .env file)
+□  Celery worker starts and logs show it is listening for tasks
+PHASE 8
+Deployment
+Render · Vercel · Neon PostgreSQL · Upstash Redis · GitHub Actions CI/CD
+What Are We Building in Phase 8?
+Deploy the entire platform using free-tier cloud services. The goal is a publicly accessible URL for your portfolio.
+Deployment Architecture:
+Service
+Provider & Cost
+FastAPI Backend
+Render.com — Free tier (750hrs/month, spins down after inactivity)
+Celery Worker
+Render.com — Background Worker service (free tier)
+PostgreSQL
+Neon.tech — Free tier (0.5GB storage, serverless)
+Redis
+Upstash.com — Free tier (10,000 commands/day, serverless)
+Next.js Frontend
+Vercel.com — Free tier (unlimited personal projects)
+CI/CD
+GitHub Actions — Free for public repos
+GitHub Actions CI/CD Pipeline
+⚙️ CI/CD Pipeline Steps
+Trigger: Push to main branch
+Job 1 — Test:
+  1. Checkout code
+  2. Set up Python 3.11
+  3. Install dependencies
+  4. Run pytest (unit + integration tests)
+  5. If tests fail → pipeline stops, no deployment
+Job 2 — Deploy Backend (runs after Test passes):
+  1. Trigger Render deploy hook via HTTPS webhook
+  2. Render pulls latest code and rebuilds Docker image
+Job 3 — Deploy Frontend:
+  1. Vercel CLI deploy
+  2. Set environment variables (NEXT_PUBLIC_API_URL)
+Environment Variables for Production
+Never commit secrets to git. Use each platform's secret manager:
+Render: Environment > Add Environment Variable
+Vercel: Settings > Environment Variables
+GitHub Actions: Settings > Secrets and variables > Actions
+✅ Phase 8 Completion Checklist
+□  Backend accessible at https://your-app.onrender.com/health
+□  Frontend accessible at https://your-app.vercel.app
+□  Push to main branch automatically triggers deployment
+□  All environment variables set in cloud platform (no .env files in production)
+□  Neon PostgreSQL tables created via Alembic migrations
+□  WebSocket connections work over wss:// (HTTPS equivalent)
+PHASE 9
+Advanced Features
+Vector Search · Semantic Similarity · Distributed Tracing · AI Auto-Grouping
+What Are We Building in Phase 9?
+Phase 9 is for those who want to push further. These features transform the platform from a good portfolio project into something that matches real enterprise observability tools.
+Feature 9.1 — Semantic Log Search with ChromaDB
+Instead of searching logs by keyword ("redis error"), we embed log messages as vectors and search by meaning. "database connection refused" also finds "cannot connect to postgres" even though the words are different.
+Use sentence-transformers to embed each log message
+Store embeddings in ChromaDB (local vector database)
+GET /logs/search?q=redis+timeout uses vector similarity search
+Feature 9.2 — AI Incident Grouping
+When multiple incidents are related (e.g., database is down → API fails → workers fail), AI groups them into a single "outage event" instead of showing 15 separate incidents.
+Embed incident summaries as vectors
+Cluster similar incidents using cosine similarity
+AI generates a unified outage report for the cluster
+Feature 9.3 — Service Dependency Graph
+Visualize which services call which. When service A goes down, the graph shows which downstream services will be affected. Built from log correlation (trace_id matching).
+Feature 9.4 — Distributed Tracing
+Each request gets a trace_id. As it passes through multiple services, each logs with that trace_id. You can then see the full journey of a single request across services — exactly like Jaeger or Zipkin.
+Feature 9.5 — Auto-Remediation
+For known failure patterns (e.g., Redis memory full), the AI suggests a specific fix command. An authorized operator can click "Apply Fix" which triggers a Celery task that runs the remediation script.
+⚠️ Production Safety Note
+Auto-remediation is powerful but dangerous.
+Always require manual confirmation before executing commands.
+Log every remediation action with who approved it and when.
+Start with read-only fixes (clearing cache) before write operations.
+This feature is 100% optional and only for advanced builders.
+Recommended Development Timeline
+This is a solo project timeline assuming 2-3 hours of coding per day:
+Phase
+Estimated Time
+Phase 1 — Project Setup
+2-3 days
+Phase 2 — Log Ingestion
+3-4 days
+Phase 3 — WebSocket Streaming
+2-3 days
+Phase 4 — Incident Detection
+3-4 days
+Phase 5 — AI Integration
+2-3 days
+Phase 6 — Next.js Dashboard
+4-5 days
+Phase 7 — Dockerization
+1-2 days
+Phase 8 — Deployment
+2-3 days
+Phase 9 — Advanced Features
+1-2 weeks (optional)
+TOTAL (without Phase 9)
+~3-4 weeks
+Common Mistakes to Avoid
+❌ Mistakes Every Beginner Makes (and How to Avoid Them)
+1. MISTAKE: Skipping Pydantic validation — 'I'll validate later'
+   FIX: Always define request/response schemas FIRST before writing route logic
+2. MISTAKE: Using synchronous SQLAlchemy in an async FastAPI app
+   FIX: Use 'from sqlalchemy.ext.asyncio import AsyncSession' everywhere
+3. MISTAKE: Storing credentials in code or .env files committed to git
+   FIX: Add .env to .gitignore on day 1. Use GitHub secrets for CI/CD.
+4. MISTAKE: Routes directly querying the database
+   FIX: Routes → Services → Repositories → Database. Always follow layers.
+5. MISTAKE: Not handling WebSocket disconnects → memory leak over time
+   FIX: Always use try/finally in WebSocket handlers to remove from manager
+6. MISTAKE: Blocking the async event loop with slow synchronous code
+   FIX: Any operation >10ms should be in a Celery task or run_in_executor
+7. MISTAKE: Not writing Alembic migrations — manually editing DB schema
+   FIX: Every schema change must have a migration. Never ALTER TABLE manually.
+Testing Strategy
+Production-grade code has tests. Here is what to test at each layer:
+Test Type
+What & How
+Unit Tests (pytest)
+Test individual functions in isolation. Mock database and Redis. Example: test anomaly_detector with 15 error logs in 60 seconds.
+Integration Tests
+Test routes against a real test database. Use pytest fixtures to create and teardown a test PostgreSQL database.
+WebSocket Tests
+Use httpx AsyncClient with WebSocket support. Connect, send a log, assert the WS client receives it.
+AI Tests
+Mock the AI API response. Test that your prompt builder includes the right log context. Never hit real AI API in CI.
+Load Tests (Locust)
+Simulate 100 services sending logs simultaneously. Measure throughput and p99 latency.
+Portfolio Talking Points
+When presenting this project in interviews, emphasize these architectural decisions:
+🎯 One-Line Project Summary for Resume
+"Built a production-grade AI-powered observability platform with FastAPI,
+PostgreSQL, Redis Pub/Sub, WebSockets, and Gemini API that ingests logs from
+multiple services in real time, detects anomalies using sliding window algorithms,
+and generates AI-powered root cause analysis with sub-50ms streaming latency."
+Good luck building! Take it one phase at a time.
+Each phase builds on the previous one. Don't skip ahead.
