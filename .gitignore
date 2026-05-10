@@ -1,6 +1,7 @@
 # Environment Variables
 .env
 *.env
+*.docx
 
 # Python
 __pycache__/
